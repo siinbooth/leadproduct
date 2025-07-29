@@ -183,7 +183,7 @@ export default function Login() {
             >
               {isRegistering 
                 ? 'Sudah punya akun? Login di sini'
-                : 'Belum punya akun? Daftar di sini'
+                : 
               }
             </button>
           </div>

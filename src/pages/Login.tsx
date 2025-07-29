@@ -1,14 +1,16 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { LogIn, Loader2 } from 'lucide-react'
+import { LogIn, Loader2, UserPlus } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(false)
+  const [isRegistering, setIsRegistering] = React.useState(false)
   const [formData, setFormData] = React.useState({
     email: '',
-    password: ''
+    password: '',
+    name: ''
   })
 
   React.useEffect(() => {
@@ -44,23 +46,88 @@ export default function Login() {
     }
   }
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Sign up the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password
+      })
+
+      if (authError) {
+        alert('Registrasi gagal: ' + authError.message)
+        return
+      }
+
+      if (authData.user) {
+        // Add to admins table
+        const { error: adminError } = await supabase
+          .from('admins')
+          .insert({
+            id: authData.user.id,
+            name: formData.name,
+            email: formData.email
+          })
+
+        if (adminError) {
+          console.error('Error adding admin:', adminError)
+          alert('User berhasil dibuat tapi gagal menambahkan ke admin table')
+        } else {
+          alert('Admin berhasil didaftarkan! Silakan login.')
+          setIsRegistering(false)
+          setFormData({ email: formData.email, password: '', name: '' })
+        }
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      alert('Terjadi kesalahan saat registrasi')
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <LogIn className="w-8 h-8 text-blue-600" />
+              {isRegistering ? (
+                <UserPlus className="w-8 h-8 text-blue-600" />
+              ) : (
+                <LogIn className="w-8 h-8 text-blue-600" />
+              )}
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Admin Login
+              {isRegistering ? 'Daftar Admin' : 'Admin Login'}
             </h1>
             <p className="text-gray-600">
-              Masuk ke dashboard untuk mengelola leads
+              {isRegistering 
+                ? 'Buat akun admin baru untuk mengelola leads'
+                : 'Masuk ke dashboard untuk mengelola leads'
+              }
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-6">
+            {isRegistering && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Lengkap
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Nama lengkap admin"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
@@ -97,13 +164,29 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin mr-2 h-5 w-5" />
-                  Masuk...
+                  {isRegistering ? 'Mendaftar...' : 'Masuk...'}
                 </>
               ) : (
-                'Masuk'
+                isRegistering ? 'Daftar' : 'Masuk'
               )}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering(!isRegistering)
+                setFormData({ email: '', password: '', name: '' })
+              }}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              {isRegistering 
+                ? 'Sudah punya akun? Login di sini'
+                : 'Belum punya akun? Daftar di sini'
+              }
+            </button>
+          </div>
         </div>
       </div>
     </div>

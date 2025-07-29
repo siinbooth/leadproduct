@@ -219,7 +219,7 @@ export default function Settings() {
                 />
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                URL akan menjadi: <strong>websaya.com/{newProduct.slug}</strong>
+                URL akan menjadi: <strong>lead.paketusaha.web.id/{newProduct.slug}</strong>
               </p>
               <div className="flex space-x-2 mt-4">
                 <button
@@ -270,7 +270,7 @@ export default function Settings() {
                 ) : (
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">{product.name}</h3>
-                    <p className="text-sm text-gray-600">websaya.com/{product.slug}</p>
+                    <p className="text-sm text-gray-600">lead.paketusaha.web.id/{product.slug}</p>
                     <p className="text-xs text-gray-400">
                       Status: {product.is_active ? (
                         <span className="text-green-600">Aktif</span>

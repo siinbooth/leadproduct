@@ -1,18 +1,20 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase, Product } from '../lib/supabase'
+import { supabase, Product, SubProduct, sendWhatsAppMessage } from '../lib/supabase'
 import { CheckCircle, Loader2 } from 'lucide-react'
 
 export default function ProductForm() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const [product, setProduct] = React.useState<Product | null>(null)
+  const [subProducts, setSubProducts] = React.useState<SubProduct[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitted, setSubmitted] = React.useState(false)
   const [formData, setFormData] = React.useState({
     name: '',
     phone: '',
+    selectedSubProduct: '',
     source: ''
   })
 
@@ -33,6 +35,16 @@ export default function ProductForm() {
       }
       
       setProduct(data)
+      
+      // Fetch sub-products
+      const { data: subProductsData } = await supabase
+        .from('sub_products')
+        .select('*')
+        .eq('product_id', data.id)
+        .eq('is_active', true)
+        .order('price', { ascending: true })
+      
+      setSubProducts(subProductsData || [])
       setLoading(false)
     }
     
@@ -41,21 +53,35 @@ export default function ProductForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!product || submitting) return
+    if (!product || submitting || !formData.selectedSubProduct) return
     
     setSubmitting(true)
     
     try {
-      const { error } = await supabase
+      const { data: leadData, error } = await supabase
         .from('leads')
         .insert({
           name: formData.name,
           phone: formData.phone,
           product_id: product.id,
+          sub_product_id: formData.selectedSubProduct,
           source: formData.source
         })
+        .select(`
+          *,
+          assigned_admin:admins(name, whatsapp_number, is_whatsapp_active),
+          sub_product:sub_products(name, price)
+        `)
+        .single()
       
       if (error) throw error
+      
+      // Send WhatsApp notification to assigned admin
+      if (leadData?.assigned_admin?.whatsapp_number && leadData.assigned_admin.is_whatsapp_active) {
+        const message = `🔔 Lead Baru!\n\nNama: ${formData.name}\nHP: ${formData.phone}\nProduk: ${product.name}\nPaket: ${leadData.sub_product?.name}\nSumber: ${formData.source}\n\nSilakan follow up segera!`
+        
+        await sendWhatsAppMessage(leadData.assigned_admin.whatsapp_number, message)
+      }
       
       setSubmitted(true)
     } catch (error) {
@@ -87,6 +113,9 @@ export default function ProductForm() {
             </h1>
             <p className="text-gray-600 mb-6">
               Data Anda telah berhasil dikirim. Tim kami akan segera menghubungi Anda untuk informasi lebih lanjut mengenai <strong>{product?.name}</strong>.
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Paket yang dipilih: <strong>{subProducts.find(sp => sp.id === formData.selectedSubProduct)?.name}</strong>
             </p>
             <p className="text-sm text-gray-500">
               Pastikan nomor HP Anda aktif agar kami dapat menghubungi Anda.
@@ -144,6 +173,25 @@ export default function ProductForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pilih Paket
+              </label>
+              <select
+                required
+                value={formData.selectedSubProduct}
+                onChange={(e) => setFormData(prev => ({ ...prev, selectedSubProduct: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg"
+              >
+                <option value="">Pilih paket yang diinginkan</option>
+                {subProducts.map((subProduct) => (
+                  <option key={subProduct.id} value={subProduct.id}>
+                    {subProduct.name} - Rp {subProduct.price.toLocaleString('id-ID')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dari mana Anda mengetahui produk ini?
               </label>
               <select
@@ -162,7 +210,7 @@ export default function ProductForm() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !formData.selectedSubProduct}
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {submitting ? (

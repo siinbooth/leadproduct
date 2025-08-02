@@ -1,24 +1,41 @@
 import React from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { BarChart3, Users, Settings, LogOut, Home } from 'lucide-react'
+import { BarChart3, Users, Settings, LogOut, Home, UserCheck } from 'lucide-react'
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [user, setUser] = React.useState<any>(null)
+  const [currentAdmin, setCurrentAdmin] = React.useState<any>(null)
 
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchCurrentAdmin(session.user.id)
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchCurrentAdmin(session.user.id)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const fetchCurrentAdmin = async (userId: string) => {
+    const { data } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    setCurrentAdmin(data)
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -37,6 +54,11 @@ export default function Layout() {
       <div className="w-64 bg-white shadow-lg">
         <div className="p-6">
           <h1 className="text-xl font-bold text-gray-800">Leads Dashboard</h1>
+          {currentAdmin && (
+            <p className="text-sm text-gray-600 mt-1">
+              {currentAdmin.name} ({currentAdmin.role?.replace('_', ' ')})
+            </p>
+          )}
         </div>
         
         <nav className="mt-6">
@@ -76,17 +98,35 @@ export default function Layout() {
             Analytics
           </Link>
           
-          <Link
-            to="/settings"
-            className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
-              isActive('/settings')
-                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <Settings className="mr-3 h-5 w-5" />
-            Settings
-          </Link>
+          {/* Handle Customers - only for HC and Super Admin */}
+          {currentAdmin && ['handle_customer', 'super_admin'].includes(currentAdmin.role) && (
+            <Link
+              to="/handle-customers"
+              className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+                isActive('/handle-customers')
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <UserCheck className="mr-3 h-5 w-5" />
+              Handle Customers
+            </Link>
+          )}
+          
+          {/* Settings - only for Super Admin */}
+          {currentAdmin && currentAdmin.role === 'super_admin' && (
+            <Link
+              to="/settings"
+              className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+                isActive('/settings')
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              Settings
+            </Link>
+          )}
         </nav>
         
         <div className="absolute bottom-0 w-64 p-6">

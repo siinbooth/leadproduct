@@ -6,6 +6,7 @@ import ProductForm from './pages/ProductForm'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
+import HandleCustomers from './pages/HandleCustomers'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
@@ -29,6 +30,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="leads" element={<Leads />} />
+          <Route path="handle-customers" element={<HandleCustomers />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>

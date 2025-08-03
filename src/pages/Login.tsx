@@ -1,12 +1,13 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import { LogIn, Loader2, UserPlus } from 'lucide-react'
+import { supabase, DEMO_ACCOUNTS } from '../lib/supabase'
+import { LogIn, Loader2, UserPlus, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(false)
   const [isRegistering, setIsRegistering] = React.useState(false)
+  const [showPassword, setShowPassword] = React.useState(false)
   const [formData, setFormData] = React.useState({
     email: '',
     password: '',
@@ -69,7 +70,8 @@ export default function Login() {
           .insert({
             id: authData.user.id,
             name: formData.name,
-            email: formData.email
+            email: formData.email,
+            role: 'admin'
           })
 
         if (adminError) {
@@ -88,9 +90,19 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+  const handleDemoLogin = (account: any) => {
+    setFormData({
+      email: account.email,
+      password: account.password,
+      name: account.name
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
+      <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -101,7 +113,7 @@ export default function Login() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {isRegistering ? 'Daftar Admin' : 'Admin Login'}
+              {isRegistering ? 'Daftar Admin' : 'CRM Login'}
             </h1>
             <p className="text-gray-600">
               {isRegistering 
@@ -146,14 +158,23 @@ export default function Login() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -186,6 +207,64 @@ export default function Login() {
                 : 'Belum punya akun? Daftar di sini'
               }
             </button>
+          </div>
+        </div>
+
+        {/* Demo Accounts */}
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Demo Accounts</h2>
+          <p className="text-gray-600 mb-6">Klik untuk mengisi form login dengan akun demo:</p>
+          
+          <div className="space-y-4">
+            {/* Admin Accounts */}
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">👥 Admin Accounts</h3>
+              <div className="space-y-2">
+                {DEMO_ACCOUNTS.admins.map((admin, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleDemoLogin(admin)}
+                    className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <div className="font-medium text-blue-900">{admin.name}</div>
+                    <div className="text-sm text-blue-600">{admin.email}</div>
+                    <div className="text-xs text-blue-500">Password: {admin.password}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Handle Customer Account */}
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">🎧 Handle Customer</h3>
+              <button
+                onClick={() => handleDemoLogin(DEMO_ACCOUNTS.handleCustomer)}
+                className="w-full text-left p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+              >
+                <div className="font-medium text-green-900">{DEMO_ACCOUNTS.handleCustomer.name}</div>
+                <div className="text-sm text-green-600">{DEMO_ACCOUNTS.handleCustomer.email}</div>
+                <div className="text-xs text-green-500">Password: {DEMO_ACCOUNTS.handleCustomer.password}</div>
+              </button>
+            </div>
+
+            {/* Super Admin Account */}
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">⚡ Super Admin</h3>
+              <button
+                onClick={() => handleDemoLogin(DEMO_ACCOUNTS.superAdmin)}
+                className="w-full text-left p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+              >
+                <div className="font-medium text-purple-900">{DEMO_ACCOUNTS.superAdmin.name}</div>
+                <div className="text-sm text-purple-600">{DEMO_ACCOUNTS.superAdmin.email}</div>
+                <div className="text-xs text-purple-500">Password: {DEMO_ACCOUNTS.superAdmin.password}</div>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> Ini adalah akun demo untuk testing. Di production, gunakan akun yang aman.
+            </p>
           </div>
         </div>
       </div>

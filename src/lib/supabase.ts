@@ -116,3 +116,24 @@ export const sendWhatsAppMessage = async (phoneNumber: string, message: string) 
   
   return { success: true }
 }
+
+// Pre-configured accounts with credentials
+export const DEMO_ACCOUNTS = {
+  admins: [
+    { email: 'berliana@admin.com', password: 'berliana123', name: 'Admin Berliana', role: 'admin' },
+    { email: 'livia@admin.com', password: 'livia123', name: 'Admin Livia', role: 'admin' },
+    { email: 'reka@admin.com', password: 'reka123', name: 'Admin Reka', role: 'admin' }
+  ],
+  handleCustomer: {
+    email: 'selly@hc.com', 
+    password: 'selly123', 
+    name: 'Handle Customer Selly', 
+    role: 'handle_customer'
+  },
+  superAdmin: {
+    email: 'angger@superadmin.com', 
+    password: 'angger123', 
+    name: 'Super Admin Angger', 
+    role: 'super_admin'
+  }
+}

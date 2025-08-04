@@ -8,6 +8,7 @@ export default function Login() {
   const [loading, setLoading] = React.useState(false)
   const [isRegistering, setIsRegistering] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
+  const [creatingDemoAccounts, setCreatingDemoAccounts] = React.useState(false)
   const [formData, setFormData] = React.useState({
     email: '',
     password: '',
@@ -23,6 +24,60 @@ export default function Login() {
     })
   }, [navigate])
 
+  const createDemoAccounts = async () => {
+    setCreatingDemoAccounts(true)
+    
+    try {
+      // Create all demo accounts
+      const allAccounts = [
+        ...DEMO_ACCOUNTS.admins,
+        DEMO_ACCOUNTS.handleCustomer,
+        DEMO_ACCOUNTS.superAdmin
+      ]
+
+      for (const account of allAccounts) {
+        try {
+          // Try to sign up the user
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: account.email,
+            password: account.password
+          })
+
+          if (authError && !authError.message.includes('already registered')) {
+            console.error(`Error creating ${account.email}:`, authError)
+            continue
+          }
+
+          if (authData.user) {
+            // Add to admins table
+            const { error: adminError } = await supabase
+              .from('admins')
+              .upsert({
+                id: authData.user.id,
+                name: account.name,
+                email: account.email,
+                role: account.role,
+                whatsapp_number: account.whatsapp_number || null,
+                is_whatsapp_active: account.whatsapp_number ? true : false
+              })
+
+            if (adminError) {
+              console.error(`Error adding ${account.email} to admins:`, adminError)
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing ${account.email}:`, error)
+        }
+      }
+
+      alert('Demo accounts berhasil dibuat! Silakan login dengan salah satu akun demo.')
+    } catch (error) {
+      console.error('Error creating demo accounts:', error)
+      alert('Terjadi kesalahan saat membuat demo accounts')
+    } finally {
+      setCreatingDemoAccounts(false)
+    }
+  }
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -34,7 +89,11 @@ export default function Login() {
       })
 
       if (error) {
-        alert('Login gagal: ' + error.message)
+        if (error.message.includes('Invalid login credentials')) {
+          alert('Email atau password salah. Pastikan akun sudah terdaftar atau buat demo accounts terlebih dahulu.')
+        } else {
+          alert('Login gagal: ' + error.message)
+        }
         return
       }
 
@@ -264,6 +323,23 @@ export default function Login() {
           <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
             <p className="text-sm text-yellow-800">
               <strong>Note:</strong> Ini adalah akun demo untuk testing. Di production, gunakan akun yang aman.
+            </p>
+            <button
+              onClick={createDemoAccounts}
+              disabled={creatingDemoAccounts}
+              className="mt-3 w-full bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {creatingDemoAccounts ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  Membuat Demo Accounts...
+                </>
+              ) : (
+                'Buat Semua Demo Accounts'
+              )}
+            </button>
+            <p className="text-xs text-yellow-700 mt-2">
+              Klik tombol ini jika demo accounts belum ada di sistem
             </p>
           </div>
         </div>
